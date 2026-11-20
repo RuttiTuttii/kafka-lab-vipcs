@@ -6,7 +6,7 @@ lab 9: five .NET Worker Service microservices talking over Apache Kafka. team 2
 
 </div>
 
-> limits: the college broker `10.9.2.80:9092` is reachable only from the college network, use docker compose at home. from the college pc `10.9.1.14` the broker did not answer when this was written (ping 100% loss, port 9092 timeout). only the inventory service is ready, the other folders are empty.
+> limits: the college broker `10.9.2.80:9092` is reachable only from the college network, use docker compose at home. from the college pc `10.9.1.14` port 9092 did not answer when this was written. all five services were tested against a local broker with topic auto-creation disabled, not against the college broker. state lives in files, there are no refunds or reservation release.
 
 ---
 
@@ -15,11 +15,11 @@ lab 9: five .NET Worker Service microservices talking over Apache Kafka. team 2
 ```
 kafka-lab-vipcs/
 ├── services/
-│   ├── user/            Alisa, Dasha
-│   ├── order/           Vita, Milena
-│   ├── payment/         Matvey
-│   ├── inventory/       Egor (ready, .NET 10)
-│   └── notification/    Zakhar
+│   ├── user/            Alisa, Dasha (ready, .NET 10, port 5003)
+│   ├── order/           Vita, Milena (ready, .NET 10, port 5001)
+│   ├── payment/         Matvey (ready, .NET 10, port 5002)
+│   ├── inventory/       Egor (ready, .NET 10, port 5004)
+│   └── notification/    Zakhar (ready, .NET 10, no API)
 ├── contracts/
 │   └── events.md        topics and JSON schemas
 ├── scripts/             kafka-up for a local broker
@@ -45,6 +45,24 @@ kafka-lab-vipcs/
 ## <img src="assets/icons/file-json.svg" width="20" height="20" valign="middle" /> contract
 
 event schemas, message keys, `group.id` and `eventId` rules are in [contracts/events.md](contracts/events.md). it is the single source of truth: change a schema by a pull request here and tell the chat.
+
+## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> running services
+
+services may run on different pcs in any order: each creates the topics it needs on start, reads from the beginning and keeps state in `data/`.
+
+```bash
+# visual studio: open services/<name>/<solution>.sln, pick the "college broker" or "local broker" profile, press F5
+
+# one service, from the repo root on windows
+powershell -ExecutionPolicy Bypass -File scripts\run-service.ps1 -Name payment
+
+# all five services plus a demo flow on one pc
+powershell -ExecutionPolicy Bypass -File scripts\run-all.ps1
+
+# ubuntu and macos
+./scripts/run-service.sh payment
+./scripts/run-all.sh
+```
 
 ## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> local broker
 

@@ -14,8 +14,7 @@ public class KafkaSettings
         "order.created",
         "payment.completed",
         "payment.failed",
-        "order.cancelled",
-        "order.status.changed"
+        "order.cancelled"
     };
 
     public IEnumerable<string> ResolveTopics()

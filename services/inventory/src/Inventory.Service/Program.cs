@@ -13,15 +13,29 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection("Kafka"));
 
 // склад заполняем из конфига, список sku общий с командой order
-var store = new InventoryStore();
-var seed = builder.Configuration.GetSection("Seed:Stock").Get<Dictionary<string, int>>() ?? new();
-foreach (var (sku, qty) in seed) store.Set(sku, qty);
+// состояние в файле: при первом запуске берём остатки из конфига, дальше из файла
+var store = new InventoryStore(builder.Configuration["Persistence:Path"]);
+if (!store.HasState)
+{
+    var seed = builder.Configuration.GetSection("Seed:Stock").Get<Dictionary<string, int>>() ?? new();
+    foreach (var (sku, qty) in seed) store.Set(sku, qty);
+}
 
 builder.Services.AddSingleton(store);
+builder.Services.AddSingleton<TopicReadiness>();
+builder.Services.AddHostedService<TopicBootstrapService>();
 builder.Services.AddSingleton<EventPublisher>();
 builder.Services.AddHostedService<OrderCreatedConsumer>();
 
 var app = builder.Build();
+
+// брокер недоступен: отвечаем 503 вместо 500, чтобы причина была понятна
+app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
+{
+    var err = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    ctx.Response.StatusCode = err is TimeoutException or Confluent.Kafka.KafkaException ? 503 : 500;
+    await ctx.Response.WriteAsJsonAsync(new { error = err is TimeoutException ? "kafka is not available, topics are not ready" : err?.Message });
+}));
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -62,7 +76,7 @@ app.MapPost("/check", (CheckDto dto, InventoryStore s) =>
 app.MapPost("/seed/orders", async (EventPublisher publisher, CancellationToken ct) =>
 {
     OrderCreated Make(Guid orderId, string sku, int qty) => new(
-        Guid.NewGuid(), orderId, Guid.NewGuid(), [new OrderItem(sku, qty, 100m)], 100m * qty, "RUB", DateTimeOffset.UtcNow);
+        Guid.NewGuid(), orderId, Guid.NewGuid(), [new OrderItem(sku, sku, qty, 100m)], 100m * qty, "RUB", "Created", DateTimeOffset.UtcNow);
 
     var duplicateId = Guid.NewGuid();
     var orders = new[]
@@ -75,6 +89,18 @@ app.MapPost("/seed/orders", async (EventPublisher publisher, CancellationToken c
     };
     foreach (var o in orders) await publisher.PublishAsync(TopicNames.OrderCreated, o.OrderId.ToString(), o, ct);
     return Results.Ok(new { sent = orders.Length, orderIds = orders.Select(o => o.OrderId) });
+});
+
+// какие топики видит наш клиент на брокере, помогает понять, что создано и что нет
+app.MapGet("/kafka/topics", (Microsoft.Extensions.Options.IOptions<KafkaOptions> o) =>
+{
+    using var admin = new Confluent.Kafka.AdminClientBuilder(new Confluent.Kafka.AdminClientConfig { BootstrapServers = o.Value.BootstrapServers }).Build();
+    try
+    {
+        var meta = admin.GetMetadata(TimeSpan.FromSeconds(10));
+        return Results.Ok(new { broker = o.Value.BootstrapServers, topics = meta.Topics.Select(t => t.Topic).Order().ToList() });
+    }
+    catch (Exception e) { return Results.Problem(e.Message, statusCode: 503); }
 });
 
 app.Run();

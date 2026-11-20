@@ -10,6 +10,7 @@ namespace Inventory.Service.Kafka;
 // слушает order.created, резервирует товар и отвечает inventory.reserved или inventory.failed
 public sealed class OrderCreatedConsumer(
     IOptions<KafkaOptions> options,
+    TopicReadiness readiness,
     InventoryStore store,
     EventPublisher publisher,
     ILogger<OrderCreatedConsumer> log) : BackgroundService
@@ -21,6 +22,9 @@ public sealed class OrderCreatedConsumer(
 
     private async Task RunAsync(CancellationToken ct)
     {
+        // ждём, пока топики будут созданы или найдены
+        try { await readiness.Ready.WaitAsync(ct); } catch (OperationCanceledException) { return; }
+
         var config = new ConsumerConfig
         {
             BootstrapServers = _options.BootstrapServers,

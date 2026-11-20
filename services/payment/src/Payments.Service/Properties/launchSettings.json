@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Payments.Service (college broker 10.9.2.80:9092)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "10.9.2.80:9092"
+      },
+      "applicationUrl": "http://localhost:5002",
+      "launchBrowser": true,
+      "launchUrl": "payments"
+    },
+    "Payments.Service (local broker localhost:9092)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "localhost:9092"
+      },
+      "applicationUrl": "http://localhost:5002",
+      "launchBrowser": true,
+      "launchUrl": "payments"
+    },
+    "Payments.Service (broker from appsettings.Local.json)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "http://localhost:5002",
+      "launchBrowser": true,
+      "launchUrl": "payments"
+    }
+  }
+}

@@ -6,7 +6,7 @@
 
 </div>
 
-> ограничения: брокер колледжа `10.9.2.80:9092` виден только из сети колледжа, дома работаем через docker compose. в колледже брокер с пк `10.9.1.14` на момент записи не отвечал (ping 100% loss, порт 9092 таймаут). готов только сервис inventory, остальные папки пустые.
+> ограничения: брокер колледжа `10.9.2.80:9092` виден только из сети колледжа, дома работаем через docker compose. в колледже с пк `10.9.1.14` он на момент записи не отвечал по порту 9092. все пять сервисов проверены на локальном брокере с выключенным автосозданием топиков, на брокере колледжа не проверены. состояние хранится в файлах, возвратов и снятия резервов нет.
 
 ---
 
@@ -15,14 +15,14 @@
 ```
 kafka-lab-vipcs/
 ├── services/
-│   ├── user/            Алиса, Даша
-│   ├── order/           Вита, Милена
-│   ├── payment/         Матвей
-│   ├── inventory/       Егор (готов, .NET 10)
-│   └── notification/    Захар
+│   ├── user/            Алиса, Даша (готов, .NET 10, порт 5003)
+│   ├── order/           Вита, Милена (готов, .NET 10, порт 5001)
+│   ├── payment/         Матвей (готов, .NET 10, порт 5002)
+│   ├── inventory/       Егор (готов, .NET 10, порт 5004)
+│   └── notification/    Захар (готов, .NET 10, без API)
 ├── contracts/
 │   └── events.md        топики и схемы JSON
-├── scripts/             kafka-up для локального брокера
+├── scripts/             run-service, run-all, kafka-up
 ├── docker-compose.yml   kafka + kafka-ui
 └── .github/workflows/
     └── ci.yml           сборка и тесты .NET сервисов
@@ -41,10 +41,40 @@ kafka-lab-vipcs/
 * **топики:** 7, у всех суффикс `2`, он берётся из конфига, а не из кода
 * **брокер:** один, `10.9.2.80:9092` в колледже и `localhost:9092` дома
 * **формат:** JSON, camelCase, время в UTC ISO-8601
+* **топики:** создаёт тот сервис, который стартовал первым, на брокере колледжа их может не быть
 
 ## <img src="assets/icons/file-json.svg" width="20" height="20" valign="middle" /> контракт
 
 схемы всех событий, ключи сообщений, правила для `group.id` и `eventId` лежат в [contracts/events.md](contracts/events.md). это единственный источник правды, схему меняем pull request-ом сюда и пишем в чат.
+
+## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> запуск сервисов
+
+сервисы можно запускать на разных пк и в любой последовательности. каждый при старте создаёт нужные топики, читает всё с начала (`earliest`) и хранит состояние в `data/`, поэтому сервис, который поднялся позже, догонит события, а перезапуск не теряет заказы.
+
+```bash
+# visual studio: открой services/<имя>/<решение>.sln, в выпадающем списке запуска выбери
+# профиль "college broker" (10.9.2.80:9092) или "local broker" (localhost:9092) и жми F5
+
+# один сервис одной командой, из корня репо на windows
+powershell -ExecutionPolicy Bypass -File scripts\run-service.ps1 -Name payment
+
+# все пять сервисов, демо-сценарий и общие логи на одном пк
+powershell -ExecutionPolicy Bypass -File scripts\run-all.ps1
+
+# ubuntu и macos
+./scripts/run-service.sh payment
+./scripts/run-all.sh
+```
+
+| сервис | решение | порт | профиль vs |
+|---|---|---|---|
+| user | `Users.sln` | 5003 | Users.Service |
+| order | `Orders.sln` | 5001 | Orders.Service |
+| payment | `Payments.sln` | 5002 | Payments.Service |
+| inventory | `Inventory.sln` | 5004 | Inventory.Service |
+| notification | `NotificationService.sln` | нет | NotificationService.Worker |
+
+`run-all` запускает три сценария: обычный заказ (Confirmed), нехватка склада (Cancelled от inventory), сумма выше лимита оплаты (Cancelled от payment).
 
 ## <img src="assets/icons/terminal.svg" width="20" height="20" valign="middle" /> локальный брокер
 
