@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # guarded kafka deploy on the server: refuses if 9092 is already in use
-# usage: remote-deploy.sh <host-ip> <suffix> [--yes]
+# usage: HOST_IP=<ip> SUFFIX=<n> YES=--yes remote-deploy.sh   (or positional: <ip> <suffix> --yes)
 set -eu
-host_ip="${1:?host ip required}"
-suffix="${2:-2}"
-[ "${3:-}" = "--yes" ] || { echo "dry run: pass --yes to deploy (ask the teacher first)"; exit 0; }
+host_ip="${HOST_IP:-${1:-}}"
+suffix="${SUFFIX:-${2:-2}}"
+yes="${YES:-${3:-}}"
+
+# detect the ip on the server when it was not passed
+if [ -z "$host_ip" ]; then host_ip="$(hostname -I | awk '{print $1}')"; fi
+echo "host_ip=$host_ip suffix=$suffix"
+[ "$yes" = "--yes" ] || { echo "dry run: pass --yes to deploy (ask the teacher first)"; exit 0; }
 
 # 1. never touch a running broker
 if ss -tln 2>/dev/null | grep -q ':9092\b'; then

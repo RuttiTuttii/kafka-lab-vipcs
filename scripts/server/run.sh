@@ -10,6 +10,6 @@ host_ip="${target#*@}"
 
 case "$action" in
   diag)   ssh "$target" 'bash -s' < "$here/remote-diag.sh" ;;
-  deploy) ssh "$target" "bash -s -- $host_ip $suffix $yes" < "$here/remote-deploy.sh" ;;
+  deploy) ssh "$target" "HOST_IP=$host_ip SUFFIX=$suffix YES=$yes bash -s" < "$here/remote-deploy.sh" ;;
   *) echo "unknown action: $action"; exit 1 ;;
 esac

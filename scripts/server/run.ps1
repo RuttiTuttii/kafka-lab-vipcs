@@ -20,5 +20,5 @@ if ($LASTEXITCODE -ne 0) { Write-Host "FAIL: scp did not work, check ssh access"
 if ($Action -eq "diag") {
     ssh $Target "tr -d '\r' < /tmp/$script | bash -s"
 } else {
-    ssh $Target "tr -d '\r' < /tmp/$script | bash -s -- $hostIp $Suffix $flag"
+    ssh $Target "tr -d '\r' < /tmp/$script > /tmp/$script.lf && HOST_IP=$hostIp SUFFIX=$Suffix YES=$flag bash /tmp/$script.lf"
 }
