@@ -1,0 +1,25 @@
+name: ci
+
+# шаблон для репозитория сервиса: копируется в каждый репо как есть
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # собираем и тестируем всё, что нашлось в репозитории
+      - name: build
+        run: dotnet build -c Release
+
+      - name: test
+        run: dotnet test -c Release --no-build
