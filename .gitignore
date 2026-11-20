@@ -7,3 +7,4 @@ appsettings.Local.json
 .env
 logs/
 publish/
+data/
