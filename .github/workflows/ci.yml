@@ -1,6 +1,5 @@
 name: ci
 
-# шаблон для репозитория сервиса: копируется в каждый репо как есть
 on:
   push:
     branches: [main]
@@ -15,11 +14,21 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
 
-      # собираем и тестируем всё, что нашлось в репозитории
-      - name: build
-        run: dotnet build -c Release
-
-      - name: test
-        run: dotnet test -c Release --no-build
+      # собираем и тестируем каждый .NET сервис, у которого уже есть проект
+      - name: build and test services
+        shell: bash
+        run: |
+          status=0
+          for dir in services/*/; do
+            if ls "$dir"*.sln "$dir"*.csproj >/dev/null 2>&1; then
+              echo "::group::$dir"
+              dotnet build "$dir" -c Release || status=1
+              dotnet test "$dir" -c Release --no-build || status=1
+              echo "::endgroup::"
+            else
+              echo "skip $dir: .NET проекта нет"
+            fi
+          done
+          exit $status

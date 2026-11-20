@@ -6,7 +6,7 @@
 
 </div>
 
-> ограничения: брокер колледжа `10.9.2.80:9092` виден только из сети колледжа, дома работаем через docker compose. код сервисов живёт в отдельных репозиториях, здесь только контракты и общая инфраструктура. сервисов в этом репо нет.
+> ограничения: брокер колледжа `10.9.2.80:9092` виден только из сети колледжа, дома работаем через docker compose. в колледже брокер с пк `10.9.1.14` на момент записи не отвечал (ping 100% loss, порт 9092 таймаут). готов только сервис inventory, остальные папки пустые.
 
 ---
 
@@ -14,12 +14,18 @@
 
 ```
 kafka-lab-vipcs/
+├── services/
+│   ├── user/            Алиса, Даша
+│   ├── order/           Вита, Милена
+│   ├── payment/         Матвей
+│   ├── inventory/       Егор (готов, .NET 10)
+│   └── notification/    Захар
 ├── contracts/
-│   └── events.md          топики и схемы JSON
-├── assets/icons/          svg-иконки для docs
-├── docker-compose.yml     kafka + kafka-ui
+│   └── events.md        топики и схемы JSON
+├── scripts/             kafka-up для локального брокера
+├── docker-compose.yml   kafka + kafka-ui
 └── .github/workflows/
-    └── ci.yml             шаблон ci для репо сервиса
+    └── ci.yml           сборка и тесты .NET сервисов
 ```
 
 ## <img src="assets/icons/users.svg" width="20" height="20" valign="middle" /> кто что делает
@@ -46,8 +52,7 @@ kafka-lab-vipcs/
 # поднимаем kafka (KRaft, один брокер) и kafka-ui
 docker compose up -d
 
-# смотрим топики и сообщения в браузере
-open http://localhost:8080
+# смотрим топики и сообщения в браузере: http://localhost:8080
 ```
 
 ### настройки сервиса
@@ -60,12 +65,25 @@ open http://localhost:8080
 
 локальные правки кладём в `appsettings.Local.json`, он в `.gitignore`.
 
-## <img src="assets/icons/git-branch.svg" width="20" height="20" valign="middle" /> как работаем с git
-
-* **репозитории:** у каждого сервиса свой, этот хранит общее
-* **ci:** `.github/workflows/ci.yml` копируешь в свой репо как есть, он собирает и тестирует всё через `dotnet`
-* **контракты:** обновляешь их pull request-ом сюда, ревьюит Егор
+## <img src="assets/icons/git-branch.svg" width="20" height="20" valign="middle" /> * **папки:** каждый пушит только в свой `services/<имя>`, чужое не трогаем
+* **перед работой:** `git pull --rebase origin main`, чтобы не ловить конфликты
+* **автор коммитов:** на пк колледжа глобальный git настроен на чужого человека, поэтому в репо один раз задай себя (команды ниже)
+* **контракты:** меняем через pull request и пишем в чат, источник правды `contracts/events.md`
 * **коммиты:** conventional commits, тема строчными, например `feat(payment): consumer order.created2`
+
+```bash
+# задаём себя только для этого репо, глобальный git не трогаем
+git config user.name "твой-ник-на-github"
+git config user.email "твой-id+ник@users.noreply.github.com"
+
+# забираем свежее перед работой
+git pull --rebase origin main
+
+# отправляем только свою папку
+git add services/payment
+git commit -m "feat(payment): consumer order.created2"
+git push origin main
+```
 
 ## <img src="assets/icons/triangle-alert.svg" width="20" height="20" valign="middle" /> ограничения
 

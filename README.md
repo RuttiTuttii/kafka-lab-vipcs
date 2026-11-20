@@ -6,7 +6,7 @@ lab 9: five .NET Worker Service microservices talking over Apache Kafka. team 2
 
 </div>
 
-> limits: the college broker `10.9.2.80:9092` is reachable only from the college network, use docker compose at home. service code lives in separate repos, this one holds contracts and shared infrastructure only. there are no services here.
+> limits: the college broker `10.9.2.80:9092` is reachable only from the college network, use docker compose at home. from the college pc `10.9.1.14` the broker did not answer when this was written (ping 100% loss, port 9092 timeout). only the inventory service is ready, the other folders are empty.
 
 ---
 
@@ -14,12 +14,18 @@ lab 9: five .NET Worker Service microservices talking over Apache Kafka. team 2
 
 ```
 kafka-lab-vipcs/
+├── services/
+│   ├── user/            Alisa, Dasha
+│   ├── order/           Vita, Milena
+│   ├── payment/         Matvey
+│   ├── inventory/       Egor (ready, .NET 10)
+│   └── notification/    Zakhar
 ├── contracts/
-│   └── events.md          topics and JSON schemas
-├── assets/icons/          svg icons for docs
-├── docker-compose.yml     kafka + kafka-ui
+│   └── events.md        topics and JSON schemas
+├── scripts/             kafka-up for a local broker
+├── docker-compose.yml   kafka + kafka-ui
 └── .github/workflows/
-    └── ci.yml             ci template for a service repo
+    └── ci.yml           build and test .NET services
 ```
 
 ## <img src="assets/icons/users.svg" width="20" height="20" valign="middle" /> who does what
@@ -46,8 +52,7 @@ event schemas, message keys, `group.id` and `eventId` rules are in [contracts/ev
 # start kafka (KRaft, one broker) and kafka-ui
 docker compose up -d
 
-# browse topics and messages
-open http://localhost:8080
+# browse topics and messages: http://localhost:8080
 ```
 
 ### service settings
@@ -62,10 +67,11 @@ local overrides go to `appsettings.Local.json`, it is in `.gitignore`.
 
 ## <img src="assets/icons/git-branch.svg" width="20" height="20" valign="middle" /> git workflow
 
-* **repos:** one per service, this one holds shared files
-* **ci:** copy `.github/workflows/ci.yml` into your repo as is, it builds and tests everything with `dotnet`
-* **contracts:** update them by a pull request here, Egor reviews
-* **commits:** conventional commits, lowercase subject, e.g. `feat(payment): consumer order.created2`
+* **folders:** push only to your own `services/<name>`
+* **before work:** `git pull --rebase origin main`
+* **commit author:** the college pc has someone else's global git identity, set yours once per repo with `git config user.name` and `git config user.email`
+* **contracts:** change by a pull request and tell the chat, source of truth is `contracts/events.md`
+* **commits:** conventional commits, lowercase subject
 
 ## <img src="assets/icons/triangle-alert.svg" width="20" height="20" valign="middle" /> limitations
 
